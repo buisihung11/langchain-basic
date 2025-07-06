@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from typing import List
 from dotenv import load_dotenv
+import streamlit as st
 
 # Load environment variables
 load_dotenv()
@@ -40,7 +41,7 @@ class AppConfig:
     )
     
     # Available models (fallback)
-    default_models: List[str] = None
+    default_models: List[str] = []
     
     def __post_init__(self):
         if self.default_models is None:

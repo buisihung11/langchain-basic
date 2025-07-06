@@ -1,6 +1,7 @@
 """Core chatbot functionality using LangChain."""
 
 from typing import Generator, Optional, Dict, Any
+from pydantic import SecretStr
 import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -67,7 +68,7 @@ class ChatbotCore:
         try:
             self.llm = ChatOpenAI(
                 base_url=f"{base_url}/v1",
-                api_key=lmstudio_config.api_key,
+                api_key=SecretStr(lmstudio_config.api_key),
                 model=model,
                 temperature=temperature,
                 streaming=st.session_state.get("enable_streaming", True),
@@ -101,16 +102,19 @@ class ChatbotCore:
         system_message = self.config.get(
             "system_message", 
             st.session_state.get("system_message", app_config.default_system_message)
-        )
+        ) or "I am a helpful AI assistant."
         
         # Create chat prompt template
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", system_message),
+            SystemMessage(content=system_message),
             MessagesPlaceholder(variable_name="chat_history"),
             ("user", "{input}")
         ])
         
         # Create the chain
+        if not self.llm:
+            raise ValueError("LLM must be initialized before creating the chain")
+            
         self.chain = (
             {
                 "input": RunnablePassthrough(),

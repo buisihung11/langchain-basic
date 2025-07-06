@@ -18,7 +18,7 @@ st.set_page_config(
     page_title=app_config.page_title,
     page_icon=app_config.page_icon,
     layout=app_config.layout,
-    initial_sidebar_state=app_config.initial_sidebar_state
+    initial_sidebar_state='auto'  # Using 'auto', 'expanded', or 'collapsed'
 )
 
 # Apply custom CSS
