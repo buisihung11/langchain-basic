@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 st.set_page_config(
     page_title=app_config.page_title,
     page_icon=app_config.page_icon,
-    layout=app_config.layout,
+    layout='wide',  # Only 'centered' or 'wide' are allowed
     initial_sidebar_state='auto'  # Using 'auto', 'expanded', or 'collapsed'
 )
 

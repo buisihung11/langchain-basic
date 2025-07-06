@@ -69,7 +69,7 @@ class ChatbotCore:
             self.llm = ChatOpenAI(
                 base_url=f"{base_url}/v1",
                 api_key=SecretStr(lmstudio_config.api_key),
-                model=model,
+                model=str(model),
                 temperature=temperature,
                 streaming=st.session_state.get("enable_streaming", True),
                 timeout=lmstudio_config.timeout

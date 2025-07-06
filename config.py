@@ -1,7 +1,7 @@
 """Configuration management for the chatbot application."""
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 from dotenv import load_dotenv
 import streamlit as st
@@ -40,12 +40,8 @@ class AppConfig:
         "You are a helpful AI assistant. Be concise, friendly, and informative."
     )
     
-    # Available models (fallback)
-    default_models: List[str] = []
-    
-    def __post_init__(self):
-        if self.default_models is None:
-            self.default_models = ["local-model"]
+    # Available models (fallback) - using default_factory for mutable default
+    default_models: List[str] = field(default_factory=lambda: ["local-model"])
 
 
 @dataclass
