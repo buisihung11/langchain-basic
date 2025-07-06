@@ -46,7 +46,11 @@ class ChatbotCore:
         """
         self.config = config or {}
         self.llm = None
-        self.memory = None
+        self.memory = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True,
+            output_key="answer"
+        )
         self.chain = None
         self.connection_manager = ConnectionManager()
         
