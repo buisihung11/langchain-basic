@@ -22,6 +22,7 @@ class Page:
     icon: str
     description: str
     render_function: Callable[[], None]
+    order: int = 0  # Add order field for sorting
 
 
 class NavigationManager:
@@ -48,10 +49,11 @@ class NavigationManager:
         st.sidebar.title("🦜 LangChain Learning Hub")
         st.sidebar.markdown("---")
         
-        # Page selection
+        # Sort pages by order and create options
+        sorted_pages = sorted(self.pages.values(), key=lambda p: p.order)
         page_options = {
-            f"{page.icon} {page.title}": page.id 
-            for page in self.pages.values()
+            f"{page.icon} Mini Project {page.order}: {page.title}": page.id 
+            for page in sorted_pages
         }
         
         # Get current selection from session state or default to chatbot
@@ -89,8 +91,10 @@ class NavigationManager:
         """Render the main page header."""
         page = self.get_page(page_id)
         if page:
+            # Include project number in header
+            header_title = f"{page.icon} Mini Project {page.order}: {page.title}"
             st.markdown(
-                f'<h1 class="main-header">{page.icon} {page.title}</h1>', 
+                f'<h1 class="main-header">{header_title}</h1>', 
                 unsafe_allow_html=True
             )
             st.markdown(f"*{page.description}*")
