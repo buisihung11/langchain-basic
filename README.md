@@ -1,15 +1,16 @@
-# 🤖 LangChain Streamlit Chatbot
+# 🔗 LangChain Learning Hub
 
-A modern, interactive chatbot built with LangChain and Streamlit that provides a user-friendly web interface for conversing with OpenAI's language models.
+A collection of mini-projects to learn LangChain concepts and implementations with a user-friendly Streamlit interface.
 
 ## ✨ Features
 
-- **Interactive Web UI**: Beautiful Streamlit interface with chat bubbles
-- **Multiple Models**: Support for GPT-3.5-turbo, GPT-4, and GPT-4-turbo
-- **Customizable Settings**: Adjust temperature and system messages
-- **Chat History**: Persistent conversation history during the session
-- **Responsive Design**: Works on desktop and mobile devices
-- **Example Prompts**: Quick-start buttons for common use cases
+- **🤖 Basic Chatbot**: Interactive chatbot with conversation memory and streaming responses
+- **🔗 Sequential Chain Pipeline**: Chain multiple LLM operations for complex workflows
+- **📚 RAG Chatbot**: Chat with your documents using Retrieval-Augmented Generation
+- **🛠️ Agent with Tools**: Build AI agents that can use tools to complete complex tasks
+- **Multi-page App**: Navigate between different mini-projects using Streamlit's pages feature
+- **Interactive UI**: Beautiful Streamlit interface with responsive design
+- **Detailed Explanations**: Learn LangChain concepts with annotations and examples
 
 ## 🚀 Quick Start
 
@@ -18,6 +19,19 @@ A modern, interactive chatbot built with LangChain and Streamlit that provides a
 ```bash
 pip install -r requirements.txt
 ```
+
+### 2. Run the App
+
+```bash
+streamlit run app.py
+```
+
+### 3. Deploy to Streamlit Cloud
+
+1. Fork this repository to your GitHub account
+2. Sign up for [Streamlit Cloud](https://streamlit.io/cloud)
+3. Create a new app and connect it to your forked repository
+4. Set up your API keys in the Streamlit Cloud secrets management
 
 ### 2. Set Up Environment Variables
 
