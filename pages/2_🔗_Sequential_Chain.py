@@ -168,17 +168,72 @@ class ContentPipeline:
         except Exception as e:
             st.error(f"Failed to setup pipeline: {format_error_message(e)}")
 
-    def run_pipeline(self, topic: str, tone: str, length: str) -> dict:
-        """Run the content generation pipeline."""
+    def run_pipeline(self, topic: str, tone: str, length: str, status_text=None, progress_bar=None) -> dict:
+        """
+        Run the content generation pipeline.
+
+        Args:
+            topic: Content topic
+            tone: Writing tone
+            length: Blog post length
+            status_text: Optional Streamlit text element to update status
+            progress_bar: Optional Streamlit progress bar to update
+        """
         if not self.pipeline:
             return {"error": "Pipeline not initialized"}
 
         try:
-            result = self.pipeline({
+            # Update status to show we're starting the pipeline
+            if status_text:
+                status_text.text("🔄 Step 1/4: Generating blog post...")
+            if progress_bar:
+                progress_bar.progress(25)
+
+            # Run the pipeline with callbacks that update status
+            result = {}
+
+            # Blog generation - Step 1
+            partial_result = self.pipeline.chains[0].invoke({
                 "topic": topic,
                 "tone": tone,
                 "length": length
             })
+            result["blog_post"] = partial_result["blog_post"]
+
+            # Summary generation - Step 2
+            if status_text:
+                status_text.text("🔄 Step 2/4: Creating summary...")
+            if progress_bar:
+                progress_bar.progress(50)
+
+            partial_result = self.pipeline.chains[1].invoke({
+                "blog_post": result["blog_post"]
+            })
+            result["summary"] = partial_result["summary"]
+
+            # Keywords extraction - Step 3
+            if status_text:
+                status_text.text("🔄 Step 3/4: Extracting SEO keywords...")
+            if progress_bar:
+                progress_bar.progress(75)
+
+            partial_result = self.pipeline.chains[2].invoke({
+                "blog_post": result["blog_post"]
+            })
+            result["keywords"] = partial_result["keywords"]
+
+            # Social posts - Step 4
+            if status_text:
+                status_text.text("🔄 Step 4/4: Generating social media posts...")
+            if progress_bar:
+                progress_bar.progress(90)
+
+            partial_result = self.pipeline.chains[3].invoke({
+                "blog_post": result["blog_post"],
+                "summary": result["summary"]
+            })
+            result["social_posts"] = partial_result["social_posts"]
+
             return result
         except Exception as e:
             logger.error(f"Pipeline execution failed: {e}")
@@ -241,8 +296,8 @@ if st.button("🚀 Generate Content Pipeline", type="primary", disabled=not topi
             status_text.text("🔄 Initializing pipeline...")
             progress_bar.progress(10)
 
-            # Run the pipeline
-            result = pipeline.run_pipeline(topic, tone, length)
+            # Run the pipeline with status updates
+            result = pipeline.run_pipeline(topic, tone, length, status_text, progress_bar)
 
             if "error" in result:
                 st.error(f"Pipeline failed: {result['error']}")
