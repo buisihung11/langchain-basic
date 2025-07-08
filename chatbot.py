@@ -11,7 +11,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.callbacks.base import BaseCallbackHandler
 
-from config import lmstudio_config, app_config
+from config import lmstudio_config, openai_config, app_config
 from utils import format_error_message, ConnectionManager
 import logging
 
@@ -60,24 +60,46 @@ class ChatbotCore:
         self._setup_chain()
     
     def _setup_llm(self) -> None:
-        """Initialize the ChatOpenAI model pointing to LMStudio."""
-        base_url = self.config.get("base_url", st.session_state.get("base_url", lmstudio_config.base_url))
-        model = self.config.get("model", st.session_state.get("model", lmstudio_config.model))
-        temperature = self.config.get("temperature", st.session_state.get("temperature", lmstudio_config.temperature))
+        """Initialize the ChatOpenAI model pointing to either OpenAI or LMStudio."""
+        # Check if using OpenAI or LMStudio
+        provider = st.session_state.get("provider", "lmstudio")
         
-        try:
-            self.llm = ChatOpenAI(
-                base_url=f"{base_url}/v1",
-                api_key=SecretStr(lmstudio_config.api_key),
-                model=str(model),
-                temperature=temperature,
-                streaming=st.session_state.get("enable_streaming", True),
-                timeout=lmstudio_config.timeout
-            )
-            logger.info(f"LLM initialized with model: {model}")
-        except Exception as e:
-            logger.error(f"Failed to initialize LLM: {e}")
-            raise
+        if provider == "openai" and openai_config.available:
+            # Use OpenAI configuration
+            model = self.config.get("model", st.session_state.get("model", openai_config.model))
+            temperature = self.config.get("temperature", st.session_state.get("temperature", openai_config.temperature))
+            
+            try:
+                self.llm = ChatOpenAI(
+                    api_key=SecretStr(openai_config.api_key),
+                    model=str(model),
+                    temperature=temperature,
+                    streaming=st.session_state.get("enable_streaming", True),
+                    timeout=openai_config.timeout
+                )
+                logger.info(f"LLM initialized with OpenAI model: {model}")
+            except Exception as e:
+                logger.error(f"Failed to initialize OpenAI LLM: {e}")
+                raise
+        else:
+            # Use LMStudio configuration
+            base_url = self.config.get("base_url", st.session_state.get("base_url", lmstudio_config.base_url))
+            model = self.config.get("model", st.session_state.get("model", lmstudio_config.model))
+            temperature = self.config.get("temperature", st.session_state.get("temperature", lmstudio_config.temperature))
+            
+            try:
+                self.llm = ChatOpenAI(
+                    base_url=f"{base_url}/v1",
+                    api_key=SecretStr(lmstudio_config.api_key),
+                    model=str(model),
+                    temperature=temperature,
+                    streaming=st.session_state.get("enable_streaming", True),
+                    timeout=lmstudio_config.timeout
+                )
+                logger.info(f"LLM initialized with LMStudio model: {model}")
+            except Exception as e:
+                logger.error(f"Failed to initialize LMStudio LLM: {e}")
+                raise
     
     def _setup_memory(self) -> None:
         """Initialize conversation memory."""
@@ -113,7 +135,8 @@ class ChatbotCore:
         
         # Create the chain
         if not self.llm:
-            raise ValueError("LLM must be initialized before creating the chain")
+            logger.warning("LLM not initialized, chain creation skipped")
+            return
             
         self.chain = (
             {
@@ -138,6 +161,11 @@ class ChatbotCore:
             AI response text
         """
         try:
+            if not self.chain:
+                error_msg = "Chatbot not properly initialized. Please check your API key or connection settings."
+                logger.error(error_msg)
+                return error_msg
+            
             # Use the chain to get response
             response = self.chain.invoke(user_input)
             
@@ -165,6 +193,11 @@ class ChatbotCore:
             Complete AI response text
         """
         try:
+            if not self.chain:
+                error_msg = "Chatbot not properly initialized. Please check your API key or connection settings."
+                logger.error(error_msg)
+                return error_msg
+                
             full_response = ""
             
             if container:
@@ -213,11 +246,21 @@ class ChatbotCore:
     def get_memory_stats(self) -> Dict[str, Any]:
         """Get statistics about current memory usage."""
         messages = self.memory.chat_memory.messages
+        
+        # Count tokens safely
+        def count_tokens(message):
+            if hasattr(message, 'content'):
+                if isinstance(message.content, str):
+                    return len(message.content.split())
+                elif isinstance(message.content, list):
+                    return sum(len(str(item).split()) for item in message.content)
+            return 0
+        
         return {
             "total_messages": len(messages),
             "user_messages": len([m for m in messages if isinstance(m, HumanMessage)]),
             "assistant_messages": len([m for m in messages if isinstance(m, AIMessage)]),
-            "total_tokens": sum(len(m.content.split()) for m in messages)
+            "total_tokens": sum(count_tokens(m) for m in messages)
         }
     
     def is_connected(self) -> bool:

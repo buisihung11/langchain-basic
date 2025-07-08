@@ -1,23 +1,19 @@
 """Mini Project 4: Agent with Tools - Placeholder Page."""
 
 import streamlit as st
-from styles import MAIN_CSS
 import logging
+from layout_utils import setup_page  # Import the shared layout utility
 
 logger = logging.getLogger(__name__)
 
-# Page configuration
-st.set_page_config(
-    page_title="Mini Project 4: Agent with Tools",
-    page_icon="🛠️",
-    layout="wide"
+# Setup page with shared layout utility
+setup_page(
+    title="Mini Project 4: Agent with Tools",
+    icon="🛠️",
+    page_title="Mini Project 4: Agent with Tools"
 )
 
-# Apply custom CSS
-st.markdown(MAIN_CSS, unsafe_allow_html=True)
-
-# Page header
-st.markdown('<h1 class="main-header">🛠️ Mini Project 4: Agent with Tools</h1>', unsafe_allow_html=True)
+# Subtitle
 st.markdown("*Building an AI agent that can use various tools to complete complex tasks.*")
 st.markdown("---")
 

@@ -14,16 +14,33 @@ load_dotenv()
 class LMStudioConfig:
     """Configuration for LMStudio connection."""
     
-    base_url: str = "http://localhost:1234"
-    model: str = "local-model"
-    temperature: float = 0.7
-    timeout: int = 60
-    api_key: str = "lm-studio"  # LMStudio doesn't require a real API key
+    # Try to get values from Streamlit secrets first, then from environment variables, then use defaults
+    base_url: str = field(default_factory=lambda: st.secrets.get("lmstudio", {}).get("base_url", os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:1234")))
+    model: str = field(default_factory=lambda: st.secrets.get("lmstudio", {}).get("model", os.environ.get("LMSTUDIO_MODEL", "local-model")))
+    temperature: float = field(default_factory=lambda: float(st.secrets.get("lmstudio", {}).get("temperature", os.environ.get("LMSTUDIO_TEMPERATURE", 0.7))))
+    timeout: int = field(default_factory=lambda: int(st.secrets.get("lmstudio", {}).get("timeout", os.environ.get("LMSTUDIO_TIMEOUT", 60))))
+    api_key: str = field(default_factory=lambda: st.secrets.get("lmstudio", {}).get("api_key", os.environ.get("LMSTUDIO_API_KEY", "lm-studio")))
     
     @property
     def api_url(self) -> str:
         """Get the full API URL."""
         return f"{self.base_url}/v1"
+
+
+@dataclass
+class OpenAIConfig:
+    """Configuration for OpenAI connection."""
+    
+    # Try to get values from Streamlit secrets first, then from environment variables
+    api_key: str = field(default_factory=lambda: st.secrets.get("openai", {}).get("api_key", os.environ.get("OPENAI_API_KEY", "")))
+    model: str = field(default_factory=lambda: st.secrets.get("openai", {}).get("model", os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")))
+    temperature: float = field(default_factory=lambda: float(st.secrets.get("openai", {}).get("temperature", os.environ.get("OPENAI_TEMPERATURE", 0.7))))
+    timeout: int = field(default_factory=lambda: int(st.secrets.get("openai", {}).get("timeout", os.environ.get("OPENAI_TIMEOUT", 60))))
+    
+    @property
+    def available(self) -> bool:
+        """Check if OpenAI API is configured."""
+        return bool(self.api_key)
 
 
 @dataclass
@@ -42,6 +59,15 @@ class AppConfig:
     
     # Available models (fallback) - using default_factory for mutable default
     default_models: List[str] = field(default_factory=lambda: ["local-model"])
+    
+    # OpenAI model options
+    openai_model_options: List[str] = field(default_factory=lambda: [
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-16k",
+        "gpt-4",
+        "gpt-4-turbo",
+        "gpt-4o"
+    ])
 
 
 @dataclass
@@ -59,5 +85,6 @@ class UIConfig:
 
 # Global configuration instances
 lmstudio_config = LMStudioConfig()
+openai_config = OpenAIConfig()
 app_config = AppConfig()
 ui_config = UIConfig()

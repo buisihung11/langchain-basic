@@ -2,7 +2,7 @@
 
 import streamlit as st
 from typing import Dict, Any, List, Tuple
-from config import app_config, ui_config, lmstudio_config
+from config import app_config, ui_config, lmstudio_config, openai_config
 from utils import ConnectionManager, get_example_prompts, validate_temperature
 from chatbot import ChatbotCore
 import logging
@@ -18,13 +18,16 @@ class SessionStateManager:
         """Initialize all session state variables with defaults."""
         defaults = {
             "messages": [],
+            "provider": "lmstudio",  # Default to LMStudio, could be 'openai'
             "model": lmstudio_config.model,
             "temperature": lmstudio_config.temperature,
             "system_message": app_config.default_system_message,
             "base_url": lmstudio_config.base_url,
             "available_models": app_config.default_models.copy(),
+            "openai_models": app_config.openai_model_options.copy(),
             "connection_status": "❓ Not checked",
             "enable_streaming": ui_config.enable_streaming,
+            "openai_api_key": openai_config.api_key,  # Will be empty string if not set
         }
         
         for key, value in defaults.items():
@@ -89,7 +92,7 @@ class SidebarComponents:
     
     def render_connection_status(self) -> None:
         """Render connection status section."""
-        st.sidebar.header("⚙️ LMStudio Settings")
+        st.sidebar.header("⚙️ Configuration Settings")
         
         # Display connection status with appropriate styling
         status = st.session_state.connection_status
@@ -104,28 +107,82 @@ class SidebarComponents:
     
     def render_connection_settings(self) -> None:
         """Render connection configuration settings."""
-        # Base URL input
-        st.session_state.base_url = st.sidebar.text_input(
-            "LMStudio Base URL",
-            value=st.session_state.base_url,
-            help="The base URL where LMStudio is running"
+        # Provider selection
+        provider_options = ["lmstudio", "openai"]
+        provider_labels = {"lmstudio": "LMStudio (Local)", "openai": "OpenAI (API)"}
+        
+        st.session_state.provider = st.sidebar.radio(
+            "Select Provider",
+            options=provider_options,
+            format_func=lambda x: provider_labels.get(x, x),
+            horizontal=True,
+            help="Choose between local LMStudio or OpenAI API"
         )
         
-        # Test connection button
-        if st.sidebar.button("🔄 Test Connection"):
-            self._test_connection()
+        # Conditional settings based on provider
+        if st.session_state.provider == "lmstudio":
+            # LMStudio settings
+            st.sidebar.markdown("#### LMStudio Settings")
+            st.session_state.base_url = st.sidebar.text_input(
+                "LMStudio Base URL",
+                value=st.session_state.base_url,
+                help="The base URL where LMStudio is running"
+            )
+            
+            # Test connection button
+            if st.sidebar.button("🔄 Test Connection"):
+                self._test_connection()
+        else:
+            # OpenAI settings
+            st.sidebar.markdown("#### OpenAI Settings")
+            
+            # Don't show the API key value, use placeholder instead
+            api_key_placeholder = "••••••••••••••••••••••••••" if st.session_state.openai_api_key else ""
+            openai_key = st.sidebar.text_input(
+                "OpenAI API Key", 
+                value="",  # Empty value to avoid showing the key
+                placeholder=api_key_placeholder,
+                type="password",
+                help="Your OpenAI API key (stored in session state)"
+            )
+            
+            # Update the session state and config if changed
+            if openai_key and openai_key != st.session_state.openai_api_key:
+                st.session_state.openai_api_key = openai_key
+                # We would store this in .streamlit/secrets.toml for deployment
+            
+            # Show API status
+            if st.session_state.openai_api_key:
+                st.sidebar.success("✅ API Key provided")
+            else:
+                st.sidebar.warning("⚠️ No API Key provided")
     
     def render_model_settings(self) -> None:
         """Render model configuration settings."""
-        # Model selection
-        model_options = st.session_state.available_models
-        current_model = st.session_state.model if st.session_state.model in model_options else model_options[0]
+        # Model selection based on provider
+        if st.session_state.provider == "openai":
+            model_options = st.session_state.openai_models
+            help_text = "Available OpenAI models"
+        else:
+            model_options = st.session_state.available_models
+            help_text = "Available models from LMStudio"
         
+        # Ensure we have at least one model in the options list
+        if not model_options:
+            model_options = ["default-model"]
+            
+        # Find the current model in options or default to first
+        current_model = st.session_state.model
+        if current_model not in model_options:
+            current_model = model_options[0]
+            st.session_state.model = current_model
+            
+        # Display model selection dropdown
         st.session_state.model = st.sidebar.selectbox(
             "Select Model",
             options=model_options,
-            index=model_options.index(current_model) if current_model in model_options else 0,
-            help="Available models from LMStudio"
+            index=model_options.index(current_model),
+            help=help_text
         )
         
         # Temperature slider
